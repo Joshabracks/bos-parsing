@@ -1,0 +1,17 @@
+{
+  "name": "bos-parser",
+  "version": "1.0.0",
+  "description": "parses bos files and compiles into a json object",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start-watch": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
