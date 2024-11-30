@@ -5,7 +5,8 @@ function parseObject(entry) {
     const keyLine = lines.shift().trim()
     const key = keyLine.split(' ').shift()
     if (!key) return null
-    const keyEnum = keyLine.match(/(?<=\w+\s)[\w\s]+/)?.[0]
+    const enumMetaData = keyLine.match(/(?<=\w+\s)[\w=]+/g) || []
+    const keyEnum = enumMetaData?.shift()
     const body = {}
     lines.forEach(line => {
         const match = line.trim().match(/^(\w+):\s(.*)$/)
@@ -14,7 +15,7 @@ function parseObject(entry) {
         const lineValue = match[2]
         body[lineKey] = lineValue
     })
-    return { key, body, enum: keyEnum, type: 'object' }
+    return { key, body, enum: keyEnum, meta_data: enumMetaData.map(m => m.split(/=/)), type: 'object' }
 }
 
 function parseEnum(entry) {
@@ -78,7 +79,7 @@ export function parseEntries(result, entry) {
             if (!result.objects[parsedEntry.key]) {
                 result.objects[parsedEntry.key] = []
             }
-            result.objects[parsedEntry.key].push({body: parsedEntry.body, enum: parsedEntry.enum })
+            result.objects[parsedEntry.key].push(parsedEntry)
             break;
     } 
     return result

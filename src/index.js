@@ -24,7 +24,6 @@ while (entry !== null) {
     entries.push(entry[0].trim())
     entry = ENTRIES_REGEX.exec(fullBos)
 }
-
 const parsedEntries = entries.reduce(parseEntries, { objects: {}, enums: {}, definitions: {} })
 const processedEntries = processParsedEntries(parsedEntries)
 writeFileSync(`./out.json`, JSON.stringify(processedEntries, null, 2))

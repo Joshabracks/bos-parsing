@@ -4,7 +4,7 @@ export function processParsedEntries({ objects, enums, definitions }) {
     const result = {}
     for (let key in objects) {
         const definition = definitions[key]
-        if (!definition) throw new Error(`${key} is not defined`)
+        if (!definition) throw new Error(`${key} is not defined within definitions:\n ${JSON.stringify(definitions, null, 2)}`)
         objects[key].forEach(obj => {
             const objResult = {}
             for (let defKey in definition.required) {
@@ -17,7 +17,7 @@ export function processParsedEntries({ objects, enums, definitions }) {
                     console.error(`${defKey}: not present in object: ${JSON.stringify(obj)}`)
                     return
                 }
-                if (defKey.match(/^\[\w+\]$/)) {
+                if (obj.body[defKey]?.trim().match(/^\[.*\]$/)) {
                     // field is array
                     const fieldType = defKey.replace(/[\[\]]/g, '')
                     const field = JSON.parse(obj.body[defKey])
@@ -34,6 +34,7 @@ export function processParsedEntries({ objects, enums, definitions }) {
                 }
             }
             for (let defKey in definition.optional) {
+                if (!obj.body[defKey]) continue
                 if (defKey.match(/^\[\w+\]$/)) {
                     // field is array
                     const fieldType = defKey.replace(/[\[\]]/g, '')
@@ -53,18 +54,17 @@ export function processParsedEntries({ objects, enums, definitions }) {
             if (!result[key]) {
                 result[key] = []
             }
-            const objEnums = obj.enum?.trim()?.split(' ')
-            if (objEnums?.length) {
-                const enumKey = objEnums.shift()
-                const enumList = enums[enumKey]
+            if (obj.enum) {
+                // const enumKey = objEnums.shift()
+                const enumList = enums[obj.enum]
                 if (!enumList) {
-                    console.error(`enum "${enumKey} not found"`)
+                    console.error(`enum "${obj.enum} not found"`)
                     return
                 }
-                const indexRegex = new RegExp(`<${enumKey}>`, 'g')
-                const stringRegex = new RegExp(`<~${enumKey}>`, 'g')
-                const lowerCaseRegex = new RegExp(`<~~${enumKey}>`, 'g')
-                const capitalizedRegex = new RegExp(`<~~~${enumKey}>`, 'g')
+                const indexRegex = new RegExp(`<${obj.enum}>`, 'g')
+                const stringRegex = new RegExp(`<~${obj.enum}>`, 'g')
+                const lowerCaseRegex = new RegExp(`<~~${obj.enum}>`, 'g')
+                const capitalizedRegex = new RegExp(`<~~~${obj.enum}>`, 'g')
                 enumList.forEach((e, index) => {
                     if (typeof e === 'string') {
                         const lowerCaseE = e.toLowerCase()
@@ -94,42 +94,53 @@ export function processParsedEntries({ objects, enums, definitions }) {
                         }
                         result[key].push(newObjResult)
                     } else {
+                        const eCopy = JSON.parse(JSON.stringify(e))
                         const newObjResult = {}
-                        const keyVal = e.key
-                        delete e.key
-                        e[enumKey] = keyVal
-                        for (let eKey in e) {
-                            if (!e[eKey]) continue
-                            console.log(e[eKey])
+                        const keyVal = eCopy.key
+                        delete eCopy.key
+                        eCopy[obj.enum] = keyVal
+                        if (!obj.meta_data.every(m => {
+                            if (m.length === 1) return true
+                            if (e[m[0]] === m[1]) return true
+                            return false
+                        })) {
+                            return
+                        }
+                        for (let eKey in eCopy) {
+                            if (!eCopy[eKey]) continue
                             const _indexRegex = new RegExp(`<${eKey}>`, 'g')
                             const _stringRegex = new RegExp(`<~${eKey}>`, 'g')
                             const _lowerCaseRegex = new RegExp(`<~~${eKey}>`, 'g')
                             const _capitalizedRegex = new RegExp(`<~~~${eKey}>`, 'g')
-                            const lowerCaseE = e[eKey].toLowerCase()
-                            const capitalizedE = e[eKey].slice(0, 1).toUpperCase() + e[eKey].slice(1, e[eKey].length - 1).toLowerCase()
+                            const lowerCaseE = eCopy[eKey].toLowerCase()
+                            const capitalizedE = eCopy[eKey].slice(0, 1).toUpperCase() + eCopy[eKey].slice(1, eCopy[eKey].length).toLowerCase()
                             for (let objResultKey in objResult) {
-                                if (typeof objResult[objResultKey] === 'string') {
+                                if (!newObjResult[objResultKey]) {
                                     newObjResult[objResultKey] = objResult[objResultKey]
+                                }
+                                if (typeof objResult[objResultKey] === 'string') {
+                                    newObjResult[objResultKey] = newObjResult[objResultKey]
                                         .replace(_indexRegex, index)
-                                        .replace(_stringRegex, eKey)
-                                        .replace(_lowerCaseRegex, lowerCaseE)
-                                        .replace(_capitalizedRegex, capitalizedE)
+                                        .replace(_stringRegex, eKey.replace(/_/g, ' '))
+                                        .replace(_lowerCaseRegex, lowerCaseE.replace(/_/g, ' '))
+                                        .replace(_capitalizedRegex, capitalizedE.replace(/_/g, ' '))
                                     continue
                                 }
                                 if (objResult[objResultKey]?.constructor?.name === 'Array' && typeof objResult[objResultKey][0] === 'string') {
                                     newObjResult[objResultKey] = objResult[objResultKey].map(entry => {
                                         const res = entry
                                             .replace(_indexRegex, index)
-                                            .replace(_stringRegex, e)
-                                            .replace(_lowerCaseRegex, lowerCaseE)
-                                            .replace(_capitalizedRegex, capitalizedE)
+                                            .replace(_stringRegex, eKey.replace(/_/g, ' '))
+                                            .replace(_lowerCaseRegex, lowerCaseE.replace(/_/g, ' '))
+                                            .replace(_capitalizedRegex, capitalizedE.replace(/_/g, ' '))
                                         return res
                                     })
                                     continue
                                 }
-                                newObjResult[objResultKey] = objResult[objResultKey]
+                                // newObjResult[objResultKey] = objResult[objResultKey]
                             }
                         }
+                        result[key].push(newObjResult)
                     }
                 })
             } else {
