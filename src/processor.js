@@ -1,61 +1,63 @@
-
+import { parse } from "dotenv"
 
 export function processParsedEntries({ objects, enums, definitions }) {
     const result = {}
     for (let key in objects) {
         const definition = definitions[key]
+        const allKeys = Object.keys(definition.required).concat(Object.keys(definition.optional))
         if (!definition) throw new Error(`${key} is not defined within definitions:\n ${JSON.stringify(definitions, null, 2)}`)
         objects[key].forEach(obj => {
             const objResult = {}
-            for (let defKey in definition.required) {
-                if (!obj.body[defKey]) {
+            // for (let defKey in definition.required) {
+            for (let i = 0; i < allKeys.length; i++) {
+                const defKey = allKeys[i]
+                if (definition.required[defKey] && !obj.body[defKey]) {
                     console.error(`${key}: required field ${defKey} is not present in object ${JSON.stringify(obj)}`)
                     return
+                }
+                if (definition.optional[defKey] && !obj.body[defKey]) {
+                    continue
                 }
                 const field = definition.required[defKey]?.trim()
                 if (!field) {
                     console.error(`${defKey}: not present in object: ${JSON.stringify(obj)}`)
                     return
                 }
+                function parseField(fieldType, e, isArray = false) {
+                    const primatives = ['string', 'int', 'float', 'boolean']
+                    if (primatives.indexOf(fieldType) !== -1) {
+                        return isArray ? JSON.parse(e) : e
+                    }
+                    const eKeys = enums[fieldType].map((e) => {
+                        return typeof e === 'string' ? e : e?.key
+                    })
+                    if (!isArray) {
+                        return eKeys.indexOf(e)
+                    }
+                    const eParsed = JSON.parse(e)
+                    return eParsed.map(a => {
+                        return eKeys.indexOf(a)
+                    })
+                }
                 if (obj.body[defKey]?.trim().match(/^\[.*\]$/)) {
                     // field is array
-                    const fieldType = defKey.replace(/[\[\]]/g, '')
-                    const field = JSON.parse(obj.body[defKey])
-                    if (field?.constructor?.name !== 'Array') {
+                    // const fieldName = defKey.replace(/[\[\]]/g, '')
+                    let parsedField = parseField(field.replace(/[\[\]]/g, ''), obj.body[defKey], true)
+                    if (parsedField?.constructor?.name !== 'Array') {
                         console.error(`${key}.${defKey} must be an array.  found: ${obj.body[defKey]}`)
                         return
                     }
-                    // TODO: Confirm Array types match fieldType
-                    objResult[defKey] = field
+                    
+                    objResult[defKey] = parsedField
                 } else {
-                    const fieldType = defKey.trim()
-                    // TODO: Confirm value matches fieldType
-                    objResult[defKey] = obj.body[defKey]
-                }
-            }
-            for (let defKey in definition.optional) {
-                if (!obj.body[defKey]) continue
-                if (defKey.match(/^\[\w+\]$/)) {
-                    // field is array
-                    const fieldType = defKey.replace(/[\[\]]/g, '')
-                    const field = JSON.parse(obj.body[defKey])
-                    if (field?.constructor?.name !== 'Array') {
-                        console.error(`${key}.${defKey} must be an array.  found: ${obj.body[defKey]}`)
-                        return
-                    }
-                    // TODO: Confirm Array types match fieldType
-                    objResult[defKey] = field
-                } else {
-                    const fieldType = defKey.trim()
-                    // TODO: Confirm value matches fieldType
-                    objResult[defKey] = obj.body[defKey]
+                    // const fieldName = defKey.trim()
+                    objResult[defKey] = parseField(field, obj.body[defKey])
                 }
             }
             if (!result[key]) {
                 result[key] = []
             }
             if (obj.enum) {
-                // const enumKey = objEnums.shift()
                 const enumList = enums[obj.enum]
                 if (!enumList) {
                     console.error(`enum "${obj.enum} not found"`)
@@ -65,6 +67,7 @@ export function processParsedEntries({ objects, enums, definitions }) {
                 const stringRegex = new RegExp(`<~${obj.enum}>`, 'g')
                 const lowerCaseRegex = new RegExp(`<~~${obj.enum}>`, 'g')
                 const capitalizedRegex = new RegExp(`<~~~${obj.enum}>`, 'g')
+                
                 enumList.forEach((e, index) => {
                     if (typeof e === 'string') {
                         const lowerCaseE = e.toLowerCase()
@@ -120,12 +123,13 @@ export function processParsedEntries({ objects, enums, definitions }) {
                                 }
                                 if (typeof objResult[objResultKey] === 'string') {
                                     newObjResult[objResultKey] = newObjResult[objResultKey]
-                                        .replace(_indexRegex, index)
-                                        .replace(_stringRegex, eKey.replace(/_/g, ' '))
-                                        .replace(_lowerCaseRegex, lowerCaseE.replace(/_/g, ' '))
-                                        .replace(_capitalizedRegex, capitalizedE.replace(/_/g, ' '))
+                                    .replace(_indexRegex, index)
+                                    .replace(_stringRegex, eKey.replace(/_/g, ' '))
+                                    .replace(_lowerCaseRegex, lowerCaseE.replace(/_/g, ' '))
+                                    .replace(_capitalizedRegex, capitalizedE.replace(/_/g, ' '))
                                     continue
                                 }
+                                
                                 if (objResult[objResultKey]?.constructor?.name === 'Array' && typeof objResult[objResultKey][0] === 'string') {
                                     newObjResult[objResultKey] = objResult[objResultKey].map(entry => {
                                         const res = entry

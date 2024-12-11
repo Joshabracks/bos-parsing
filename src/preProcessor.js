@@ -8,8 +8,24 @@ function parseObject(entry) {
     const enumMetaData = keyLine.match(/(?<=\w+\s)[\w=]+/g) || []
     const keyEnum = enumMetaData?.shift()
     const body = {}
+    let openBraketEntry = ""
     lines.forEach(line => {
-        const match = line.trim().match(/^(\w+):\s(.*)$/)
+        if (openBraketEntry) {
+            const match = line.trim().match(/^.*\]$/)
+            if (match) {
+                line = openBraketEntry + match;
+                openBraketEntry = ""
+            } else {
+                openBraketEntry += line
+                return
+            }
+        }
+        let match = line.trim().match(/^\w+:\s*?\[[^\]]*?$/)
+        if (match) { // line is open array
+            openBraketEntry = match[0]
+            return
+        }
+        match = line.trim().match(/^(\w+):\s(.*)$/)
         if (!match) return
         const lineKey = match[1]
         const lineValue = match[2]
@@ -30,13 +46,13 @@ function parseEnum(entry) {
             return
         }
         const entries = line.trim().split(/\s+/)
-        const subBody = {key: entries.shift()}
+        const subBody = { key: entries.shift() }
         qualifiers.forEach((qualifier, index) => {
             subBody[qualifier] = entries[index]
         })
         body.push(subBody)
     })
-    return {key, body, type: 'enum'}
+    return { key, body, type: 'enum' }
 }
 
 function parseDefinition(entry) {
@@ -44,7 +60,7 @@ function parseDefinition(entry) {
     const keyLine = lines.shift()
     const key = keyLine?.trim().replace(/@/, '')
     if (!key) return null
-    const body = {required: {}, optional: {}}
+    const body = { required: {}, optional: {} }
     lines.forEach(line => {
         const [varType, varName] = line.trim().split(/\s+/)
         if (!varType || !varName) return
@@ -54,13 +70,13 @@ function parseDefinition(entry) {
             body.optional[varName] = varType
         }
     })
-    return {key, body, type: 'definition'}
+    return { key, body, type: 'definition' }
 }
 
 function parseEntry(entry) {
     if (entry.match(/^enum/)) return parseEnum(entry)
     if (entry.match(/^@/)) return parseDefinition(entry)
-    if (entry.match(/^\w+\b/)) return parseObject(entry) 
+    if (entry.match(/^\w+\b/)) return parseObject(entry)
     console.error("Unable to parse entry: \n", entry)
     return null
 }
@@ -68,7 +84,7 @@ function parseEntry(entry) {
 export function parseEntries(result, entry) {
     const parsedEntry = parseEntry(entry)
     if (!parsedEntry) return result
-    switch(parsedEntry.type) {
+    switch (parsedEntry.type) {
         case 'definition':
             result.definitions[parsedEntry.key] = parsedEntry.body
             break;
@@ -81,6 +97,6 @@ export function parseEntries(result, entry) {
             }
             result.objects[parsedEntry.key].push(parsedEntry)
             break;
-    } 
+    }
     return result
 }
