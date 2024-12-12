@@ -20,4 +20,4 @@ function compile(dirPath) {
     return processedEntries
 }
 
-module.exports = { compile }
+export default { compile }
