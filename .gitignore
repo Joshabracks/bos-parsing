@@ -1,3 +1,4 @@
 node_modules
 entries.json
 out.json
+.npmrc
