@@ -1,0 +1,40 @@
+@object
+    :int integer
+    :float flt
+    :string str
+    :boolean bool
+    :[int] integers
+    :[float] floats
+    :[string] strings
+    :[boolean] bools
+    int integer_2
+    float flt_2
+    string str_2
+    boolean bool_2
+    [int] integers_2
+    [float] floats_2
+    [string] strings_2
+    [boolean] bools_2
+
+enum    val     val2    val3
+        ONE     UNO     ICHI
+        TWO     DOS     NI
+        THREE   TRES    SAN
+
+object val
+    integer: <val>
+    flt: 1.2
+    str: <~val>
+    bool: true
+    integers: ["<val>", "<val2>", "<val3>"]
+    floats: [1.0, 1.1, 1.2]
+    bools: [true, false, false, true]
+    strings: ["<~val>", "<~val2>", "<~val3>"]
+    integer_2: <val2>
+    flt_2: 2.3
+    str_2: <~val2>
+    bool_2: false
+    integers_2: [1, 2, 3, 4, 5]
+    floats_2: [1.2, 1.1]
+    strings_2: ["hello", "it", "is", "I"]
+    bools_2: [true, true, false, false]

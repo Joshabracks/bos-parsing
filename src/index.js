@@ -2,6 +2,7 @@ import { existsSync } from 'fs'
 import { parseEntries } from './preProcessor.js'
 import { getBosFilesRecursive } from './file.js';
 import { processParsedEntries } from './processor.js';
+import { setDebug } from './util.js';
 
 const ENTRIES_REGEX = /^[^\s][^\n]+[\S\s]+?(?=\n\s*\n)/gm
 
@@ -20,4 +21,4 @@ function compile(dirPath) {
     return processedEntries
 }
 
-export default { compile }
+export default { compile, setDebug }

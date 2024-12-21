@@ -1,4 +1,4 @@
-import { parse } from "dotenv"
+import { logError } from "./util.js"
 
 export function processParsedEntries({ objects, enums, definitions }) {
     const result = {}
@@ -12,15 +12,16 @@ export function processParsedEntries({ objects, enums, definitions }) {
             for (let i = 0; i < allKeys.length; i++) {
                 const defKey = allKeys[i]
                 if (definition.required[defKey] && !obj.body[defKey]) {
-                    console.error(`${key}: required field ${defKey} is not present in object ${JSON.stringify(obj)}`)
+                    logError(`${key}: required field ${defKey} is not present in object ${JSON.stringify(obj)}`)
                     return
                 }
                 if (definition.optional[defKey] && !obj.body[defKey]) {
                     continue
                 }
-                const field = definition.required[defKey]?.trim()
-                if (!field) {
-                    console.error(`${defKey}: not present in object: ${JSON.stringify(obj)}`)
+                const isRequired = Object.keys(definition.required).indexOf(defKey) !== -1
+                const field = isRequired ? definition.required[defKey]?.trim() : definition.optional[defKey]?.trim()
+                if (!field && !isRequired) {
+                    logError(`${defKey}: not present in object: ${JSON.stringify(obj)}`, null, 2)
                     return
                 }
                 function parseField(fieldType, e, isArray = false) {
@@ -44,7 +45,7 @@ export function processParsedEntries({ objects, enums, definitions }) {
                     // const fieldName = defKey.replace(/[\[\]]/g, '')
                     let parsedField = parseField(field.replace(/[\[\]]/g, ''), obj.body[defKey], true)
                     if (parsedField?.constructor?.name !== 'Array') {
-                        console.error(`${key}.${defKey} must be an array.  found: ${obj.body[defKey]}`)
+                        logError(`${key}.${defKey} must be an array.  found: ${obj.body[defKey]}`)
                         return
                     }
                     
@@ -60,7 +61,7 @@ export function processParsedEntries({ objects, enums, definitions }) {
             if (obj.enum) {
                 const enumList = enums[obj.enum]
                 if (!enumList) {
-                    console.error(`enum "${obj.enum} not found"`)
+                    logError(`enum "${obj.enum} not found"`)
                     return
                 }
                 const indexRegex = new RegExp(`<${obj.enum}>`, 'g')
