@@ -27,11 +27,11 @@ object val
     str: <~val>
     bool: true
     integers: ["<val>", "<val2>", "<val3>"]
-    floats: [1.0, 1.1, 1.2]
+    floats: [1.0, "<val> * 1.1", 1.2]
     bools: [true, false, false, true]
     strings: ["<~val>", "<~val2>", "<~val3>"]
     integer_2: <val2>
-    flt_2: 2.3
+    flt_2: <val2> * 2.3
     str_2: <~val2>
     bool_2: false
     integers_2: [1, 2, 3, 4, 5]

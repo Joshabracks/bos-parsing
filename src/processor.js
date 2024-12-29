@@ -107,19 +107,38 @@ export function processParsedEntries({ objects, enums, definitions }) {
                             }
                             if (typeof objResult[objResultKey] === 'string') {
                                 newObjResult[objResultKey] = formatEntry(regexes, newObjResult[objResultKey], eCopy[eKey], index)
-                                continue
                             }
-
-                            if (objResult[objResultKey]?.constructor?.name === 'Array' && typeof objResult[objResultKey][0] === 'string') {
+                            else if (objResult[objResultKey]?.constructor?.name === 'Array') {
                                 const entry = newObjResult[objResultKey] ? JSON.stringify(newObjResult[objResultKey]) : JSON.stringify(objResult[objResultKey])
                                 newObjResult[objResultKey] = JSON.parse(formatEntry(regexes, entry, eCopy[eKey], index))
-                                continue
                             }
                         }
                     }
+                    for (let objResultKey in newObjResult) {
+                        if (typeof newObjResult[objResultKey] === 'string') {
+                            try {
+                                const evaluated = eval(newObjResult[objResultKey]);
+                                newObjResult[objResultKey] = evaluated;
+                            } catch { }
+                        } else {
+                            try {
+                                newObjResult[objResultKey] = newObjResult[objResultKey].map(x => {
+                                    try {
+                                        const y = eval(x)
+                                        return y
+                                    } catch {
+                                        return x
+                                    }
+                                    
+                                })
+                            } catch { }
+                        }
+                    }
+
                     result[key].push(newObjResult)
                 })
             } else {
+                console.log(objResult)
                 result[key].push(objResult)
             }
         })
