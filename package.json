@@ -1,6 +1,6 @@
 {
   "name": "bos-parser",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "parses bos files and compiles into a json object",
   "type": "module",
   "main": "./src/index.js",
@@ -8,8 +8,5 @@
     "test": "node ./test/index.js"
   },
   "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "dotenv": "^16.4.5"
-  }
+  "license": "ISC"
 }
