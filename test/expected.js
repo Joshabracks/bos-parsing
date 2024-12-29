@@ -3,12 +3,12 @@ export const expected = {
         {
             "integer": "0",
             "flt": "1.2",
-            "str": "val",
+            "str": "ONE",
             "bool": "true",
             "integers": [
                 "0",
-                "<val2>",
-                "<val3>"
+                "0",
+                "0"
             ],
             "floats": [
                 1,
@@ -16,9 +16,9 @@ export const expected = {
                 1.2
             ],
             "strings": [
-                "val",
-                "<~val2>",
-                "<~val3>"
+                "ONE",
+                "UNO",
+                "ICHI"
             ],
             "bools": [
                 true,
@@ -28,7 +28,7 @@ export const expected = {
             ],
             "integer_2": "0",
             "flt_2": "2.3",
-            "str_2": "val2",
+            "str_2": "UNO",
             "bool_2": "false",
             "integers_2": [
                 1,
@@ -57,12 +57,12 @@ export const expected = {
         {
             "integer": "1",
             "flt": "1.2",
-            "str": "val",
+            "str": "TWO",
             "bool": "true",
             "integers": [
                 "1",
-                "<val2>",
-                "<val3>"
+                "1",
+                "1"
             ],
             "floats": [
                 1,
@@ -70,9 +70,9 @@ export const expected = {
                 1.2
             ],
             "strings": [
-                "val",
-                "<~val2>",
-                "<~val3>"
+                "TWO",
+                "DOS",
+                "NI"
             ],
             "bools": [
                 true,
@@ -82,7 +82,7 @@ export const expected = {
             ],
             "integer_2": "1",
             "flt_2": "2.3",
-            "str_2": "val2",
+            "str_2": "DOS",
             "bool_2": "false",
             "integers_2": [
                 1,
@@ -111,12 +111,12 @@ export const expected = {
         {
             "integer": "2",
             "flt": "1.2",
-            "str": "val",
+            "str": "THREE",
             "bool": "true",
             "integers": [
                 "2",
-                "<val2>",
-                "<val3>"
+                "2",
+                "2"
             ],
             "floats": [
                 1,
@@ -124,9 +124,9 @@ export const expected = {
                 1.2
             ],
             "strings": [
-                "val",
-                "<~val2>",
-                "<~val3>"
+                "THREE",
+                "TRES",
+                "SAN"
             ],
             "bools": [
                 true,
@@ -136,7 +136,7 @@ export const expected = {
             ],
             "integer_2": "2",
             "flt_2": "2.3",
-            "str_2": "val2",
+            "str_2": "TRES",
             "bool_2": "false",
             "integers_2": [
                 1,

@@ -42,7 +42,7 @@ function parseEnum(entry) {
     const body = []
     lines.forEach(line => {
         if (!qualifiers.length) {
-            body.push(line.trim())
+            body.push({key: line.trim()})
             return
         }
         const entries = line.trim().split(/\s+/)
