@@ -13,3 +13,7 @@ export function logError(e) {
     if (debug) console.error(e)
     errors.push(e)
 }
+
+export function clearErrors() {
+    while (errors.length) errors.shift()
+}
