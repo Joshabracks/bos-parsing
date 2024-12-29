@@ -138,7 +138,6 @@ export function processParsedEntries({ objects, enums, definitions }) {
                     result[key].push(newObjResult)
                 })
             } else {
-                console.log(objResult)
                 result[key].push(objResult)
             }
         })
