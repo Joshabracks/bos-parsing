@@ -5,6 +5,7 @@ import { processParsedEntries } from './processor.js';
 import { getErrors, setDebug, clearErrors } from './util.js';
 
 const ENTRIES_REGEX = /^[^\s][^\n]+[\S\s]+?(?=\n\s*\n)/gm
+let TYPES
 
 function compile(dirPath) {
     if (!existsSync(dirPath)) throw (new Error(`Unable to find path: ${dirPath}`))
@@ -16,9 +17,18 @@ function compile(dirPath) {
         entries.push(entry[0].trim())
         entry = ENTRIES_REGEX.exec(fullBos)
     }
-    const parsedEntries = entries.reduce(parseEntries, { objects: {}, enums: {}, definitions: {} })
+    TYPES = { objects: {}, enums: {}, definitions: {} }
+    const parsedEntries = entries.reduce(parseEntries, TYPES)
     const processedEntries = processParsedEntries(parsedEntries)
     return processedEntries
 }
 
-export default { compile, setDebug, getErrors, clearErrors }
+function getEnums() {
+    return TYPES ? TYPES.enums : null
+}
+
+function getDefinitions() {
+    return TYPES ? TYPES.definitions : null
+}
+
+export default { compile, setDebug, getErrors, clearErrors, getEnums, getDefinitions }
