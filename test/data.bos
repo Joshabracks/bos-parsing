@@ -7,6 +7,7 @@
     :[float] floats
     :[string] strings
     :[boolean] bools
+    :string str_3
     int integer_2
     float flt_2
     string str_2
@@ -26,15 +27,16 @@ object val
     flt: 1.2
     str: <~val>
     bool: true
-    integers: ["<val>", "<val2>", "<val3>"]
-    floats: [1.0, "<val> * 1.1", 1.2]
+    str_3: This is a complicated string.  It has stuff and <~val> is included.  There are <val2> <~~val3>s in the place.  What do you think of that.  There's also a list of items like apple, orange, pear, dog, <~~~val>
+    integers: [<val>, <val2>, <val3>]
+    floats: [1.0, <val> * 1.1, 1.2]
     bools: [true, false, false, true]
-    strings: ["<~val>", "<~val2>", "<~val3>"]
+    strings: [<~val>, <~val2>, <~val3>]
     integer_2: <val2>
     flt_2: <val2> * 2.3
     str_2: <~val2>
     bool_2: false
-    integers_2: [1, 2, 3, 4, 5]
+    integers_2: [1, <val2> * 2.3, 3, 4, 5]
     floats_2: [1.2, 1.1]
-    strings_2: ["hello", "it", "is", "I"]
+    strings_2: [hello, it, is, I]
     bools_2: [true, true, false, false]
