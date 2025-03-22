@@ -22,28 +22,29 @@ function formatEntry(regexes, original, replacement, index) {
     return res
 }
 
-function enumReplace({ entry, enums }) {
-    for (let key in enums) {
-        enums[key].forEach((enumerator, index) => {
-            enumerator = typeof enumerator === 'string' ? { key: enumerator } : enumerator
-            enumerator[key] = enumerator.key
-            Object.keys(enumerator).forEach(subKey => {
-                if (subKey === 'key') return
-                if (!enumerator[subKey]) return
-                const regexes = {
-                    index: new RegExp(`<${subKey}>`, 'g'),
-                    string: new RegExp(`<~${subKey}>`, 'g'),
-                    lowerCase: new RegExp(`<~~${subKey}>`, 'g'),
-                    capitalized: new RegExp(`<~~~${subKey}>`, 'g'),
-                }
-                entry = formatEntry(regexes, entry, enumerator[subKey], index)
-            })
+function enumReplace({ entry, enumerator, key, index }) {
+    // for (let key in enums) {
+    // enumerator.forEach((e, index) => {
+        let e = enumerator[index]
+        e = typeof e === 'string' ? { key: e } : e
+        e[key] = e.key
+        Object.keys(e).forEach(subKey => {
+            if (subKey === 'key') return
+            if (!e[subKey]) return
+            const regexes = {
+                index: new RegExp(`<${subKey}>`, 'g'),
+                string: new RegExp(`<~${subKey}>`, 'g'),
+                lowerCase: new RegExp(`<~~${subKey}>`, 'g'),
+                capitalized: new RegExp(`<~~~${subKey}>`, 'g'),
+            }
+            entry = formatEntry(regexes, entry, e[subKey], index)
         })
-    }
+    // })
+    // }
     return entry
 }
 
-function processObject({ object, enums, definition }) {
+function processObject({ object, enumerator, definition, index }) {
     const required = definition?.required || {}
     const optional = definition?.optional || {}
     const result = {}
@@ -59,8 +60,8 @@ function processObject({ object, enums, definition }) {
         let entryType = required[key] || optional[key]
         const arrayMatch = entryType.match(ARRAY_REGEX)
         if (arrayMatch) entryType = arrayMatch[1]
-        let entry = enumReplace({ entry: object.body[key], enums })
-        delete(entry.key)
+        let entry = enumerator !== null ? enumReplace({ entry: object.body[key], enumerator, key: object.enum, index }) : object.body[key]
+        delete (entry.key)
         if (arrayMatch) {
             if (entryType === 'string') {
                 const quoteWrappedEntries = entry.match(QUOTE_WRAPPER_REGEX) || []
@@ -118,9 +119,18 @@ export function processParsedEntries({ objects, enums, definitions }) {
             continue
         }
         result[key] = []
+
         objectArray.forEach(object => {
-            const processedObject = processObject({ object, enums, definition })
-            result[key].push(processedObject)
+            const enumerator = enums[object.enum]
+            if (!enumerator) {
+                const processedObject = processObject({ object, enumerator: null, definition, index: -1 })
+                result[key].push(processedObject)
+            } else {
+                enumerator.forEach((_, index) => {
+                    const processedObject = processObject({object, enumerator, definition, index})
+                    result[key].push(processedObject)
+                })
+            }
         })
     }
     return result
