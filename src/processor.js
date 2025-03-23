@@ -2,11 +2,12 @@ import { logError } from "./util.js"
 
 // const OBJECT_LINE_REGEX = /^\s+(?<key>\w+):\s(?<entry>[^\[].*[^\]]|\[[\s\S]+?\]|.{1,3})(?:\n|$)/
 const ARRAY_REGEX = /^\[([\S\s]+)\]$/
-const QUOTE_WRAPPER_REGEX = /,[\s\n]+("[^"]+")/g
+const QUOTE_WRAPPER_REGEX = /(?<=(?:\[\s+|,)[\s\n]+")([^"]+)(?=")/g
 const COMMA_REPLACE_REGEX = /__1742359509165__/g
 const COMMA_REPLACE = "__1742359509165__"
 
 function formatEntry(regexes, original, replacement, index) {
+    if (!original) return ''
     const res = original
         .replace(regexes.index, index)
         .replace(regexes.string, replacement)
@@ -25,20 +26,20 @@ function formatEntry(regexes, original, replacement, index) {
 function enumReplace({ entry, enumerator, key, index }) {
     // for (let key in enums) {
     // enumerator.forEach((e, index) => {
-        let e = enumerator[index]
-        e = typeof e === 'string' ? { key: e } : e
-        e[key] = e.key
-        Object.keys(e).forEach(subKey => {
-            if (subKey === 'key') return
-            if (!e[subKey]) return
-            const regexes = {
-                index: new RegExp(`<${subKey}>`, 'g'),
-                string: new RegExp(`<~${subKey}>`, 'g'),
-                lowerCase: new RegExp(`<~~${subKey}>`, 'g'),
-                capitalized: new RegExp(`<~~~${subKey}>`, 'g'),
-            }
-            entry = formatEntry(regexes, entry, e[subKey], index)
-        })
+    let e = enumerator[index]
+    e = typeof e === 'string' ? { key: e } : e
+    e[key] = e.key
+    Object.keys(e).forEach(subKey => {
+        if (subKey === 'key') return
+        if (!e[subKey]) return
+        const regexes = {
+            index: new RegExp(`<${subKey}>`, 'g'),
+            string: new RegExp(`<~${subKey}>`, 'g'),
+            lowerCase: new RegExp(`<~~${subKey}>`, 'g'),
+            capitalized: new RegExp(`<~~~${subKey}>`, 'g'),
+        }
+        entry = formatEntry(regexes, entry, e[subKey], index)
+    })
     // })
     // }
     return entry
@@ -53,28 +54,32 @@ function processObject({ object, enumerator, definition, index }) {
         if ((key in required) && !(key in object.body)) {
             logError(`object missing required key: ${key}`)
             return
-        } else if (!(key in object.body)) {
+        } else if (!(key in object.body) && (key in required)) {
             logError(`object does not have key: ${key}`)
             return
         }
         let entryType = required[key] || optional[key]
         const arrayMatch = entryType.match(ARRAY_REGEX)
         if (arrayMatch) entryType = arrayMatch[1]
-        let entry = enumerator !== null ? enumReplace({ entry: object.body[key], enumerator, key: object.enum, index }) : object.body[key]
-        delete (entry.key)
+        let entry = enumerator !== null ? enumReplace({ entry: object.body[key], enumerator, key: object.enum, index }) : object.body[key] || ''
+
+        if (enumerator !== null) delete (enumerator.key)
         if (arrayMatch) {
             if (entryType === 'string') {
-                const quoteWrappedEntries = entry.match(QUOTE_WRAPPER_REGEX) || []
-                quoteWrappedEntries.forEach(match => {
-                    const replacedMatch = match.replace(/,/g, COMMA_REPLACE)
-                    entry = entry.replace(match, replacedMatch)
+                let quoteWrappedEntries = entry.match(QUOTE_WRAPPER_REGEX) || []
+                entry = quoteWrappedEntries.map(match => {
+                    return match.replace(/,/g, COMMA_REPLACE)
+                    
+                    // entry = entry.replace(match, replacedMatch)
                 })
+            } else {
+                entry = entry.trim().replace(/^\[/, '').replace(/\]$/, '').split(',')
             }
-
-            entry = entry.trim().replace(/^\[/, '').replace(/\]$/, '').split(',')
+            console.log({entry})
             switch (entryType) {
                 case 'string':
-                    entry = entry.map(subEntry => subEntry.replace(COMMA_REPLACE_REGEX, ',').trim())
+                    // console.log({entry, entryType, key})
+                    entry = entry ? entry.map(subEntry => subEntry.replace(COMMA_REPLACE_REGEX, ',').trim()).filter(a => a ? true : false) : []
                     break
                 case 'int':
                 case 'float':
@@ -84,7 +89,7 @@ function processObject({ object, enumerator, definition, index }) {
                     entry = entry.map(a => a === 'true' ? true : false)
                     break
                 default:
-                // do nothing
+                    entry = entry ? entry.filter(a => a.trim() ? true : false).map(a => a.trim().replace(/^"|"$/g, '')) : []
             }
         } else {
             switch (entryType) {
@@ -127,7 +132,7 @@ export function processParsedEntries({ objects, enums, definitions }) {
                 result[key].push(processedObject)
             } else {
                 enumerator.forEach((_, index) => {
-                    const processedObject = processObject({object, enumerator, definition, index})
+                    const processedObject = processObject({ object, enumerator, definition, index })
                     result[key].push(processedObject)
                 })
             }

@@ -12,7 +12,7 @@ const RESET = "\u001b[0m";
 console.log(BLUE, `running unit test on ${path.resolve('./test')}`, RESET)
 parser.setDebug(true)
 // const start = Date.now()
-const res = parser.compile('./')
+const res = parser.compile('D:/idk_pros/guild_master/guild-master/data')
 writeFileSync('./compiled.json', JSON.stringify(res, null, 2))
 // const end = Date.now()
 // const compileTime = (end - start) / 1000
