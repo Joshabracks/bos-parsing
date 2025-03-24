@@ -1,6 +1,13 @@
 import { logError } from "./util.js"
 
+// const OBJECT_LINE_REGEX = /^\s+(?<key>\w+):\s(?<entry>[^\[].*[^\]]|\[[\s\S]+?\]|.{1,3})(?:\n|$)/
+const ARRAY_REGEX = /^\[([\S\s]+)\]$/
+const QUOTE_WRAPPER_REGEX = /(?<=(?:\[\s+|,)[\s\n]+")([^"]+)(?=")/g
+const COMMA_REPLACE_REGEX = /__1742359509165__/g
+const COMMA_REPLACE = "__1742359509165__"
+
 function formatEntry(regexes, original, replacement, index) {
+    if (!original) return ''
     const res = original
         .replace(regexes.index, index)
         .replace(regexes.string, replacement)
@@ -16,129 +23,114 @@ function formatEntry(regexes, original, replacement, index) {
     return res
 }
 
-export function processParsedEntries({ objects, enums, definitions }) {
-    const result = {}
-    for (let key in objects) {
-        const definition = definitions[key]
-        if (!definition) {
-            logError(`${key} is not defined within definitions:\n ${JSON.stringify(definitions, null, 2)}`)
-            continue
+function enumReplace({ entry, enumerator, key, index }) {
+    // for (let key in enums) {
+    // enumerator.forEach((e, index) => {
+    let e = enumerator[index]
+    e = typeof e === 'string' ? { key: e } : e
+    e[key] = e.key
+    Object.keys(e).forEach(subKey => {
+        if (subKey === 'key') return
+        if (!e[subKey]) return
+        const regexes = {
+            index: new RegExp(`<${subKey}>`, 'g'),
+            string: new RegExp(`<~${subKey}>`, 'g'),
+            lowerCase: new RegExp(`<~~${subKey}>`, 'g'),
+            capitalized: new RegExp(`<~~~${subKey}>`, 'g'),
         }
-        const allKeys = Object.keys(definition.required).concat(Object.keys(definition.optional))
-        objects[key].forEach(obj => {
-            const objResult = {}
-            for (let i = 0; i < allKeys.length; i++) {
-                const defKey = allKeys[i]
-                if (definition.required[defKey] && !obj.body[defKey]) {
-                    logError(`${key}: required field ${defKey} is not present in object ${JSON.stringify(obj)}`)
-                    return
-                }
-                if (definition.optional[defKey] && !obj.body[defKey]) {
-                    continue
-                }
-                const isRequired = Object.keys(definition.required).indexOf(defKey) !== -1
-                const field = isRequired ? definition.required[defKey]?.trim() : definition.optional[defKey]?.trim()
-                if (!field && !isRequired) {
-                    logError(`${defKey}: not present in object: ${JSON.stringify(obj)}`, null, 2)
-                    return
-                }
-                function parseField(fieldType, e, isArray = false) {
-                    const primatives = ['string', 'int', 'float', 'boolean']
-                    if (primatives.indexOf(fieldType) !== -1) {
-                        return isArray ? JSON.parse(e) : e
-                    }
-                    const eKeys = enums[fieldType].map((e) => {
-                        return typeof e === 'string' ? e : e?.key
-                    })
-                    if (!isArray) {
-                        return eKeys.indexOf(e)
-                    }
-                    const eParsed = JSON.parse(e)
-                    return eParsed.map(a => {
-                        return eKeys.indexOf(a)
-                    })
-                }
-                if (obj.body[defKey]?.trim().match(/^\[.*\]$/)) {
-                    // field is array
-                    let parsedField = parseField(field.replace(/[\[\]]/g, ''), obj.body[defKey], true)
-                    if (parsedField?.constructor?.name !== 'Array') {
-                        logError(`${key}.${defKey} must be an array.  found: ${obj.body[defKey]}`)
-                        return
-                    }
+        entry = formatEntry(regexes, entry, e[subKey], index)
+    })
+    // })
+    // }
+    return entry
+}
 
-                    objResult[defKey] = parsedField
-                } else {
-                    objResult[defKey] = parseField(field, obj.body[defKey])
-                }
-            }
-            if (!result[key]) {
-                result[key] = []
-            }
-            if (obj.enum) {
-                const enumList = enums[obj.enum]
-                if (!enumList) {
-                    logError(`enum "${obj.enum} not found"`)
-                    return
-                }
-                enumList.forEach((e, index) => {
-                    const eCopy = JSON.parse(JSON.stringify(e))
-                    const newObjResult = {}
-                    const keyVal = eCopy.key
-                    delete eCopy.key
-                    eCopy[obj.enum] = keyVal
-                    if (!obj.meta_data.every(m => {
-                        if (m.length === 1) return true
-                        if (e[m[0]] === m[1]) return true
-                        return false
-                    })) {
-                        return
-                    }
-                    for (let eKey in eCopy) {
-                        if (!eCopy[eKey]) continue
-                        const regexes = {
-                            index: new RegExp(`<${eKey}>`, 'g'),
-                            string: new RegExp(`<~${eKey}>`, 'g'),
-                            lowerCase: new RegExp(`<~~${eKey}>`, 'g'),
-                            capitalized: new RegExp(`<~~~${eKey}>`, 'g'),
-                        }
-                        for (let objResultKey in objResult) {
-                            if (!newObjResult[objResultKey]) {
-                                newObjResult[objResultKey] = objResult[objResultKey]
-                            }
-                            if (typeof objResult[objResultKey] === 'string') {
-                                newObjResult[objResultKey] = formatEntry(regexes, newObjResult[objResultKey], eCopy[eKey], index)
-                            }
-                            else if (objResult[objResultKey]?.constructor?.name === 'Array') {
-                                const entry = newObjResult[objResultKey] ? JSON.stringify(newObjResult[objResultKey]) : JSON.stringify(objResult[objResultKey])
-                                newObjResult[objResultKey] = JSON.parse(formatEntry(regexes, entry, eCopy[eKey], index))
-                            }
-                        }
-                    }
-                    for (let objResultKey in newObjResult) {
-                        if (typeof newObjResult[objResultKey] === 'string') {
-                            try {
-                                const evaluated = eval(newObjResult[objResultKey]);
-                                newObjResult[objResultKey] = evaluated;
-                            } catch { }
-                        } else {
-                            try {
-                                newObjResult[objResultKey] = newObjResult[objResultKey].map(x => {
-                                    try {
-                                        const y = eval(x)
-                                        return y
-                                    } catch {
-                                        return x
-                                    }
-                                    
-                                })
-                            } catch { }
-                        }
-                    }
+function processObject({ object, enumerator, definition, index }) {
+    const required = definition?.required || {}
+    const optional = definition?.optional || {}
+    const result = {}
+    const keys = Object.keys(required).concat(Object.keys(optional))
+    keys.forEach(key => {
+        if ((key in required) && !(key in object.body)) {
+            logError(`object missing required key: ${key}`)
+            return
+        } else if (!(key in object.body) && (key in required)) {
+            logError(`object does not have key: ${key}`)
+            return
+        }
+        let entryType = required[key] || optional[key]
+        const arrayMatch = entryType.match(ARRAY_REGEX)
+        if (arrayMatch) entryType = arrayMatch[1]
+        let entry = enumerator !== null ? enumReplace({ entry: object.body[key], enumerator, key: object.enum, index }) : object.body[key] || ''
 
-                    result[key].push(newObjResult)
+        if (enumerator !== null) delete (enumerator.key)
+        if (arrayMatch) {
+            if (entryType === 'string') {
+                let quoteWrappedEntries = entry.match(QUOTE_WRAPPER_REGEX) || []
+                entry = quoteWrappedEntries.map(match => {
+                    return match.replace(/,/g, COMMA_REPLACE)
                 })
             } else {
-                result[key].push(objResult)
+                entry = entry.trim().replace(/^\[/, '').replace(/\]$/, '').split(',')
+            }
+            switch (entryType) {
+                case 'string':
+                    entry = entry ? entry.map(subEntry => subEntry.replace(COMMA_REPLACE_REGEX, ',').trim()).filter(a => a ? true : false) : []
+                    break
+                case 'int':
+                case 'float':
+                    entry = entry.map(eval)
+                    break
+                case 'boolean':
+                    entry = entry.map(a => a === 'true' ? true : false)
+                    break
+                default:
+                    entry = entry ? entry.filter(a => a.trim() ? true : false).map(a => a.trim().replace(/^"|"$/g, '')) : []
+            }
+        } else {
+            switch (entryType) {
+                case 'string':
+                    entry = entry.trim()
+                    break
+                case 'int':
+                    entry = parseInt(entry)
+                    break
+                case 'float':
+                    entry = parseFloat(entry)
+                    break
+                case 'boolean':
+                    entry = entry === 'true' ? true : false
+                    break
+                default:
+                // do nothing
+            }
+        }
+        result[key] = entry
+    })
+    return result
+}
+
+export function processParsedEntries({ objects, enums, definitions }) {
+    const result = {}
+    for (let key in definitions) {
+        const definition = definitions[key]
+        const objectArray = objects[key]
+        if (!objectArray || !definition) {
+            logError(`missing object or definition for key: ${key}`)
+            continue
+        }
+        result[key] = []
+
+        objectArray.forEach(object => {
+            const enumerator = enums[object.enum]
+            if (!enumerator) {
+                const processedObject = processObject({ object, enumerator: null, definition, index: -1 })
+                result[key].push(processedObject)
+            } else {
+                enumerator.forEach((_, index) => {
+                    const processedObject = processObject({ object, enumerator, definition, index })
+                    result[key].push(processedObject)
+                })
             }
         })
     }
