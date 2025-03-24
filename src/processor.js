@@ -69,16 +69,12 @@ function processObject({ object, enumerator, definition, index }) {
                 let quoteWrappedEntries = entry.match(QUOTE_WRAPPER_REGEX) || []
                 entry = quoteWrappedEntries.map(match => {
                     return match.replace(/,/g, COMMA_REPLACE)
-                    
-                    // entry = entry.replace(match, replacedMatch)
                 })
             } else {
                 entry = entry.trim().replace(/^\[/, '').replace(/\]$/, '').split(',')
             }
-            console.log({entry})
             switch (entryType) {
                 case 'string':
-                    // console.log({entry, entryType, key})
                     entry = entry ? entry.map(subEntry => subEntry.replace(COMMA_REPLACE_REGEX, ',').trim()).filter(a => a ? true : false) : []
                     break
                 case 'int':

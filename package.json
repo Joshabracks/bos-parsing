@@ -1,6 +1,6 @@
 {
   "name": "bos-parser",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "description": "parses bos files and compiles into a json object",
   "type": "module",
   "main": "./src/index.js",
