@@ -12,36 +12,34 @@ function formatEntry(regexes, original, replacement, index) {
         .replace(regexes.index, index)
         .replace(regexes.string, replacement)
         .replace(regexes.lowerCase, replacement.toLowerCase())
-        .replace(regexes.capitalized, replacement.split(/_/)
+        .replace(regexes.capitalized, (replacement + '').split(/_/)
             .map(str => str
                 .slice(0, 1)
                 .toUpperCase() + str.slice(1, str.length)
                     .toLowerCase()
             )
+            .join('_')
         )
         .replace(/_/g, ' ')
     return res
 }
 
 function enumReplace({ entry, enumerator, key, index }) {
-    // for (let key in enums) {
-    // enumerator.forEach((e, index) => {
     let e = enumerator[index]
     e = typeof e === 'string' ? { key: e } : e
     e[key] = e.key
     Object.keys(e).forEach(subKey => {
         if (subKey === 'key') return
         if (!e[subKey]) return
+        const cleanKey = subKey.replace(/_/g, '[_\\s]')
         const regexes = {
-            index: new RegExp(`<${subKey}>`, 'g'),
-            string: new RegExp(`<~${subKey}>`, 'g'),
-            lowerCase: new RegExp(`<~~${subKey}>`, 'g'),
-            capitalized: new RegExp(`<~~~${subKey}>`, 'g'),
+            index: new RegExp(`<${cleanKey}>`, 'g'),
+            string: new RegExp(`<~${cleanKey}>`, 'g'),
+            lowerCase: new RegExp(`<~~${cleanKey}>`, 'g'),
+            capitalized: new RegExp(`<~~~${cleanKey}>`, 'g'),
         }
         entry = formatEntry(regexes, entry, e[subKey], index)
     })
-    // })
-    // }
     return entry
 }
 
